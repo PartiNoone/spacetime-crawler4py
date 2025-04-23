@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 from lxml import etree
 from bs4 import BeautifulSoup
 import json
+import json.decoder
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -28,19 +29,6 @@ def extract_next_links(url:str, resp):
         soup = BeautifulSoup(resp.raw_response.content,'lxml')
         links = [link.get('href') for link in soup.find_all('a')]
         # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-        # only include links if they pass is_valid
-        # DEBUG THINGS---------------------------------------------------------------------
-        # print(f"Currently extracting links from {url}.")
-        # print(f"Links found:")
-        for link in links:
-            print(f"\t{link}")
-        for i in range(len(links) - 1, -1,-1):
-            if not is_valid(links[i]):
-                links.pop(i)
-        # DEBUG THINGS---------------------------------------------------------------------
-        # print(f"Valid links:")
-        for link in links:
-            print(f"\t{link}")
         return links
     return list()
 
@@ -48,14 +36,6 @@ def is_valid(url):
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # Add things to it to help crawler avoid traps/loops/etc.
-        # Only crawl these:
-        # *.ics.uci.edu/* netloc
-        # *.cs.uci.edu/* netloc
-        # *.informatics.uci.edu/* netloc
-        # *.stat.uci.edu/* netloc
-        # today.uci.edu/department/information_computer_sciences/*
-        # Ex. such as https://ics.uci.edu/academics/undergraduate-programs/
-        # Ex. vision.ics.uci.edu/
     try:
         parsed = urlparse(url)
         # url parses into scheme://netloc/path;parameters?query#fragment
@@ -86,12 +66,27 @@ def is_valid(url):
             + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
             return False
 
-        # Add the url to a set
-        with open("explored.json", "w+") as setfile:
-            urls = json.load(setfile)
-            urls.add(url)
-            setfile.dump(urls)
-
+        # Add the url to explored dict if not in it already. If it is, then return False.
+        try:
+            with open("explored.json", "r") as setfile:
+                urls = json.load(setfile)
+                if url in urls:
+                    return False
+                urls[url] = 0
+            with open("explored.json", "w") as setfile:
+                print(f"New url should be added: {urls}") # DEBUG ------------------------------------------
+                json.dump(urls, setfile)
+        except json.decoder.JSONDecodeError: # triggered when explored.json is empty, so should only run the first time running
+            urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0,
+                    "http://www.ics.uci.edu":0,"http://www.cs.uci.edu":0,"http://www.informatics.uci.edu":0,"http://www.stat.uci.edu":0}
+            print("Empty json error ran.") # DEBUG ------------------------------------------
+            if url in urls:
+                return False
+            with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
+                urls[url] = 0
+                print(f"New url should be added: {urls}") # DEBUG ------------------------------------------
+                json.dump(urls, setfile)
+        # Passed all filters, link seems valid
         return True
     except TypeError:
         print ("TypeError for ", parsed)
