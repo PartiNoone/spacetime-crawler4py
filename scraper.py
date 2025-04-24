@@ -38,6 +38,7 @@ def is_valid(url):
     try:
         parsed = urlparse(url)
         # url parses into scheme://netloc/path;parameters?query#fragment
+        # path does include the first slash after netloc
         # we want to ignore fragments when counting unique pages
         if parsed.scheme not in set(["http", "https"]):
             return False
@@ -49,7 +50,7 @@ def is_valid(url):
             # no $ sign because we want to allow a path
             r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
             + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
-            , (parsed.netloc + '/' + parsed.path).lower()):
+            , (parsed.netloc + parsed.path).lower()):
             return False
 
         if re.match(
