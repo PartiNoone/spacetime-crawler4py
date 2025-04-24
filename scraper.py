@@ -3,7 +3,6 @@ from urllib.parse import urlparse
 from lxml import etree
 from bs4 import BeautifulSoup
 import json
-import json.decoder
 
 def scraper(url, resp):
     links = extract_next_links(url, resp)
@@ -45,10 +44,20 @@ def is_valid(url):
 
         # add more specifications here? re.match(substring, string)
         if not re.match(
+            # filter out non uci/ics sites
             # .* means any combination and number of characters
             # no $ sign because we want to allow a path
             r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
             + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
+            , (parsed.netloc + '/' + parsed.path).lower()):
+            return False
+
+        if re.match(
+            # filter out unwanted pages
+            r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
+            + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
+            + r"|intranet.ics.uci.edu/doku.php/personnel:start).*" # requires login
             , (parsed.netloc + '/' + parsed.path).lower()):
             return False
 
@@ -74,17 +83,14 @@ def is_valid(url):
                     return False
                 urls[url] = 0
             with open("explored.json", "w") as setfile:
-                print(f"New url should be added: {urls}") # DEBUG ------------------------------------------
                 json.dump(urls, setfile)
-        except json.decoder.JSONDecodeError: # triggered when explored.json is empty, so should only run the first time running
+        except FileNotFoundError: # triggered when explored.json is empty, so should only run the first time running
             urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0,
                     "http://www.ics.uci.edu":0,"http://www.cs.uci.edu":0,"http://www.informatics.uci.edu":0,"http://www.stat.uci.edu":0}
-            print("Empty json error ran.") # DEBUG ------------------------------------------
             if url in urls:
                 return False
             with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
                 urls[url] = 0
-                print(f"New url should be added: {urls}") # DEBUG ------------------------------------------
                 json.dump(urls, setfile)
         # Passed all filters, link seems valid
         return True
