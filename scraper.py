@@ -57,7 +57,9 @@ def is_valid(url):
             r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
             + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
-            + r"|intranet.ics.uci.edu/doku.php/personnel:start).*" # requires login
+            + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
+            + r"|sli.ics.uci.edu"                                  # pages don't work
+            + r").*"
             , (parsed.netloc + '/' + parsed.path).lower()):
             return False
 
@@ -72,7 +74,7 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", parsed.path.lower()):
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", url.lower()):
             return False
 
         # Add the url to explored dict if not in it already. If it is, then return False.
