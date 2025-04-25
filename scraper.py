@@ -66,9 +66,13 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
         if re.match(
             # filter out unwanted pages
             r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talk/month"               # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
             + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
             + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
             + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
             + r"|sli.ics.uci.edu"                                  # pages don't work
@@ -108,6 +112,7 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
                 urls[defrag] = 0
                 json.dump(urls, setfile)
         # Passed all filters, link seems valid
+        print(f"Passed: {parsed.netloc}{parsed.path}")
         return True
     except TypeError:
         print ("TypeError for ", parsed)
