@@ -64,7 +64,7 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
             return False
 
         if re.match(
-            # filter out unwanted pages
+            # filter out unwanted pages, based on netloc+path
             r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
@@ -75,9 +75,17 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
             + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
             + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
             + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
+            + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
             + r"|sli.ics.uci.edu"                                  # pages don't work
             + r").*"
             , (parsed.netloc + parsed.path).lower()):
+            return False
+
+        if re.match(
+            # filter out more unwanted pages, based on query
+            r".*(ical=1"              # downloads an outlook file and serves blank page
+            + r").*"
+            , (parsed.query).lower()):
             return False
 
         if re.match(
@@ -112,7 +120,7 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
                 urls[defrag] = 0
                 json.dump(urls, setfile)
         # Passed all filters, link seems valid
-        print(f"Passed: {parsed.netloc}{parsed.path}")
+        # TODO: for every page, save its netloc to some subdomains.json like so: if (parsed.netloc) not in subdomains, subdomains[netloc] = 0; else, subdomains[netloc] += 1
         return True
     except TypeError:
         print ("TypeError for ", parsed)
