@@ -67,6 +67,7 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
             # filter out unwanted pages
             r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talk/month"               # individual calendar months
             + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
             + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
             + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
