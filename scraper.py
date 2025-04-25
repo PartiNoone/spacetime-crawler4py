@@ -18,6 +18,7 @@ def scraper(url, resp):
 # main focus: extract links
 def extract_next_links(url:str, resp):
     # Implementation required.
+    # this should run after is_valid_current(url,resp), so things should be fine
     # url: the URL that was used to get the page
     # resp.url: the actual url of the page
     # resp.status: the status code. 200 is OK, page served. Other numbers mean that there was some kind of problem.
@@ -25,11 +26,10 @@ def extract_next_links(url:str, resp):
     # resp.raw_response:
     #         resp.raw_response.url: the url, again
     #         resp.raw_response.content: the content of the page
-    if resp.status == 200:
-        soup = BeautifulSoup(resp.raw_response.content,'lxml')
-        links = [link.get('href') for link in soup.find_all('a')]
-        # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-        # TODO: MAYBE CALL A FUNCTION THAT TAKES SOUP AND URL, COUNTS ALL THE WORDS, AND THEN SAVES THAT TO A FILE (for 50 most common words in space and longest page)
+    soup = BeautifulSoup(resp.raw_response.content,'lxml')
+    links = [link.get('href') for link in soup.find_all('a')]
+    # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+    # TODO: MAYBE CALL A FUNCTION THAT TAKES SOUP AND URL, COUNTS ALL THE WORDS, AND THEN SAVES THAT TO A FILE (for 50 most common words in space and longest page)
         return links
     return list()
 
@@ -120,8 +120,13 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
                 urls[defrag] = 0
                 json.dump(urls, setfile)
         # Passed all filters, link seems valid
-        # TODO: for every page, save its netloc to some subdomains.json like so: if (parsed.netloc) not in subdomains, subdomains[netloc] = 0; else, subdomains[netloc] += 1
         return True
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+
+def is_valid_current(url, resp):
+    # TODO: TAKES IN CURRENT URL AND RESPONSE, RETURNS FALSE IF
+    # WE DON'T WANT TO SCRAPE (empty text, error code, a redirect maybe)
+    # TODO: if not valid, erase its name from explored.json
+    # if valid, add it to subdomains.json like so: if (parsed.netloc) not in subdomains, subdomains[netloc] = 0; else, subdomains[netloc] += 1
