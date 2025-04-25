@@ -40,8 +40,6 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
     # For this, I am deciding to only crawl and record unique URLs only (defragmented)
     try:
         parsed = urlparse(url)
-        defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
-                  else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
         if type(parsed.scheme) is str:
             defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
                       else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
