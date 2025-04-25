@@ -40,8 +40,16 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
     # For this, I am deciding to only crawl and record unique URLs only (defragmented)
     try:
         parsed = urlparse(url)
-        defrag = parsed.scheme + parsed.netloc + parsed.path + parsed.parameters + parsed.query
-        # url parses into scheme://netloc/path;parameters?query#fragment
+        defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
+                  else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
+        if type(parsed.scheme) is str:
+            defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
+                      else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
+        else: # for when the url is in bytes instead of string
+            defrag = (parsed.scheme + b'://' + parsed.netloc + parsed.path if (parsed.query == b'')
+                      else parsed.scheme + b'://' + parsed.netloc + parsed.path + b'?' + parsed.query)
+        # y = 0 if (x < 100) else x
+        # url parses into scheme://netloc/path;params?query#fragment
         # path does include the first slash after netloc
         # we want to ignore fragments when counting unique pages
         if parsed.scheme not in set(["http", "https"]):
