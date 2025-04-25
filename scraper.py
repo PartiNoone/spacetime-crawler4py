@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 import json
 
 def scraper(url, resp):
+    # return list of urls to add to the frontier
     links = extract_next_links(url, resp)
     return [link for link in links if is_valid(link)]
 
@@ -28,15 +29,18 @@ def extract_next_links(url:str, resp):
         soup = BeautifulSoup(resp.raw_response.content,'lxml')
         links = [link.get('href') for link in soup.find_all('a')]
         # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
+        # TODO: MAYBE CALL A FUNCTION THAT TAKES SOUP AND URL, COUNTS ALL THE WORDS, AND THEN SAVES THAT TO A FILE (for 50 most common words in space and longest page)
         return links
     return list()
 
-def is_valid(url):
+def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR TO CALL A RESPONSE TO CHECK IF IT'S A DEAD PAGE
     # Decide whether to crawl this url or not. 
     # If you decide to crawl it, return True; otherwise return False.
     # Add things to it to help crawler avoid traps/loops/etc.
+    # For this, I am deciding to only crawl and record unique URLs only (defragmented)
     try:
         parsed = urlparse(url)
+        defrag = parsed.scheme + parsed.netloc + parsed.path + parsed.parameters + parsed.query
         # url parses into scheme://netloc/path;parameters?query#fragment
         # path does include the first slash after netloc
         # we want to ignore fragments when counting unique pages
@@ -61,10 +65,10 @@ def is_valid(url):
             + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
             + r"|sli.ics.uci.edu"                                  # pages don't work
             + r").*"
-            , (parsed.netloc + '/' + parsed.path).lower()):
+            , (parsed.netloc + parsed.path).lower()):
             return False
 
-        if re.match( # returns the first occurrence of a substring in the string and ignore others
+        if re.match(
             # .* means any combination and number of characters
             # \. means a dot
             # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
@@ -75,25 +79,25 @@ def is_valid(url):
             + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
             + r"|epub|dll|cnf|tgz|sha1"
             + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", url.lower()):
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", (parsed.path).lower()): # TODO: SHOULD I CHANGE PARSED.PATH TO THE WHOLE URL ENDING?
             return False
 
         # Add the url to explored dict if not in it already. If it is, then return False.
         try:
             with open("explored.json", "r") as setfile:
                 urls = json.load(setfile)
-                if url in urls:
+                if defrag in urls:
                     return False
-                urls[url] = 0
+                urls[defrag] = 0
             with open("explored.json", "w") as setfile:
                 json.dump(urls, setfile)
         except FileNotFoundError: # triggered when explored.json is empty, so should only run the first time running
             urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0,
                     "http://www.ics.uci.edu":0,"http://www.cs.uci.edu":0,"http://www.informatics.uci.edu":0,"http://www.stat.uci.edu":0}
-            if url in urls:
+            if defrag in urls:
                 return False
             with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
-                urls[url] = 0
+                urls[defrag] = 0
                 json.dump(urls, setfile)
         # Passed all filters, link seems valid
         return True
