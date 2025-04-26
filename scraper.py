@@ -3,6 +3,8 @@ from urllib.parse import urlparse
 from lxml import etree
 from bs4 import BeautifulSoup
 import json
+import tokenize
+import wordcount
 
 def scraper(url, resp):
     # return list of urls to add to the frontier
@@ -33,9 +35,8 @@ def extract_next_links(url:str, resp):
         return links
     return list()
 
-def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR TO CALL A RESPONSE TO CHECK IF IT'S A DEAD PAGE
-    # Decide whether to crawl this url or not. 
-    # If you decide to crawl it, return True; otherwise return False.
+def is_valid(url):
+    # If you decide to crawl this URL, return True; otherwise False
     # Add things to it to help crawler avoid traps/loops/etc.
     # For this, I am deciding to only crawl and record unique URLs only (defragmented)
     try:
@@ -43,13 +44,18 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
         if type(parsed.scheme) is str:
             defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
                       else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
+            # SOMETIMES URLS ARE DOUBLE COUNTED BECAUSE THEY END IN A /; let's remove trailing /
+            defrag = (defrag[0: -1] if (defrag[-1] == '/') else defrag)
+            # SOMETIMES HTTP AND HTTPS PAGES ARE COUNTED AS THE SAME; LETS MAKE A DEFRAG2 WHICH USES THE OTHER SCHEME
+            defrag2 = 'http' + defrag[5:] if (parsed.scheme == 'https') else 'https' + defrag[4:]
         else: # for when the url is in bytes instead of string
             defrag = (parsed.scheme + b'://' + parsed.netloc + parsed.path if (parsed.query == b'')
                       else parsed.scheme + b'://' + parsed.netloc + parsed.path + b'?' + parsed.query)
-        # y = 0 if (x < 100) else x
+            # Remove trailing /
+            defrag = (defrag[0, -1] if (defrag[-1] == '/') else defrag)
+            # Defrag2 = other scheme defrag
+            defrag2 = b'http' + defrag[5:] if (parsed.scheme == 'https') else b'https' + defrag[4:]
         # url parses into scheme://netloc/path;params?query#fragment
-        # path does include the first slash after netloc
-        # we want to ignore fragments when counting unique pages
         if parsed.scheme not in set(["http", "https"]):
             return False
 
@@ -112,9 +118,8 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
             with open("explored.json", "w") as setfile:
                 json.dump(urls, setfile)
         except FileNotFoundError: # triggered when explored.json is empty, so should only run the first time running
-            urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0,
-                    "http://www.ics.uci.edu":0,"http://www.cs.uci.edu":0,"http://www.informatics.uci.edu":0,"http://www.stat.uci.edu":0}
-            if defrag in urls:
+            urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
+            if defrag in urls or defrag2 in urls:
                 return False
             with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
                 urls[defrag] = 0
@@ -126,7 +131,54 @@ def is_valid(url): # TODO: MAYBE CHANGE THE SIGNATURE TO TAKE IN A RESPONSE OR T
         raise
 
 def is_valid_current(url, resp):
-    # TODO: TAKES IN CURRENT URL AND RESPONSE, RETURNS FALSE IF
-    # WE DON'T WANT TO SCRAPE (empty text, error code, a redirect maybe)
-    # TODO: if not valid, erase its name from explored.json
+    # TODO: TAKES IN CURRENT URL AND RESPONSE, RETURNS FALSE IF WE DON'T WANT TO SCRAPE
+    # also processes current and adds it to subdomains, counts words for explored.json, and 
+    # Status != 200
+    if (resp.status != 200):
+        remove_from_explored(url)
+        return False
+    soup = BeautifulSoup(resp.raw_response.content,'lxml')
+    tokens = tokenize.tokenize_string(soup.get_text(" ", strip=True)) # becomes long list of words
+    # Has < 100 words
+    numwords = len(tokens)
+    if numwords < 100:
+        remove_from_explored(url)
+        return False
+    # TODO: look for textual similarity; if similar, explored.json keeps it but we will return False
+
+    # TODO: Seems valid: add to subdomains
+    parsed = urlparse(url)
+    subdom = parsed.netloc
+    try:
+        with open("subdomains.json", "r") as setfile:
+            subs = json.load(setfile)
+        subs[subdom] = subs[subdom] + 1 if (subdom in subs) else 1
+        with open("subdomains.json", "w") as setfile:
+            json.dump(subs, setfile)
+    except FileNotFoundError: # triggered when explored.json is empty, so should only run the first time running
+        subs = {"www.ics.uci.edu":0,"www.cs.uci.edu":0,"www.informatics.uci.edu":0,"www.stat.uci.edu":0}
+        subs[subdom] = subs[subdom] + 1 if (subdom in subs) else 1
+        with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
+            json.dump(subs, setfile)
+    
+    # TODO: Seems valid: count all the words
     # if valid, add it to subdomains.json like so: if (parsed.netloc) not in subdomains, subdomains[netloc] = 0; else, subdomains[netloc] += 1
+    # TODO: ALSO IF VALID TAKE SOUP, COUNT ALL THE WORDS, AND THEN SAVE THAT TO explored.json
+
+def remove_from_explored(url):
+    '''
+    Remove the given URL from file explored.json. If no file exists,
+    create one with the seed URLs and remove the given URL from it.
+    '''
+    try:
+        with open("explored.json", "r") as setfile:
+            urls = json.load(setfile)
+            del urls[url];
+        with open("explored.json", "w") as setfile:
+            json.dump(urls, setfile)
+    except FileNotFoundError: # will only trigger the first time a seed url is processed and removed
+        urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0,
+                "http://www.ics.uci.edu":0,"http://www.cs.uci.edu":0,"http://www.informatics.uci.edu":0,"http://www.stat.uci.edu":0}
+        del urls[url];
+        with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
+            json.dump(urls, setfile)
