@@ -107,7 +107,7 @@ def is_valid(url):
         try:
             with open("explored.json", "r") as setfile:
                 urls = json.load(setfile)
-                if defrag in urls:
+                if defrag in urls or defrag2 in urls:
                     return False
                 urls[defrag] = 0
             with open("explored.json", "w") as setfile:
@@ -132,9 +132,9 @@ def defragment(parsed):
     if type(parsed.scheme) is str:
         defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
                     else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
-        # SOMETIMES URLS ARE DOUBLE COUNTED BECAUSE THEY END IN A /; let's remove trailing /
+        # SOMETIMES URLS ARE DOUBLE COUNTED BECAUSE THEY END IN A /, remove trailing /
         defrag = (defrag[0: -1] if (defrag[-1] == '/') else defrag)
-        # SOMETIMES HTTP AND HTTPS PAGES ARE COUNTED AS THE SAME; LETS MAKE A DEFRAG2 WHICH USES THE OTHER SCHEME
+        # SOMETIMES HTTP AND HTTPS PAGES ARE COUNTED AS THE SAME; MAKE A DEFRAG2 WHICH USES THE OTHER SCHEME
         defrag2 = 'http' + defrag[5:] if (parsed.scheme == 'https') else 'https' + defrag[4:]
     else: # for when the url is in bytes instead of string
         defrag = (parsed.scheme + b'://' + parsed.netloc + parsed.path if (parsed.query == b'')
@@ -166,10 +166,10 @@ def is_valid_current(url, resp):
     '''
     parsed = urlparse(url)
     defrag = defragment(parsed) # Won't need defrag2, since only defragmented1 is ever added to explored.json
-    
+
     # Status != 200
     if (resp.status != 200):
-        remove_from_explored(defrag)
+        invalidate_in_explored(defrag)
         return False
     soup = BeautifulSoup(resp.raw_response.content,'lxml')
     tokens = tokenize_string(soup.get_text(" ", strip=True)) # long list of words
@@ -177,10 +177,29 @@ def is_valid_current(url, resp):
     # Has < 100 words
     numwords = len(tokens)
     if numwords < 100:
-        remove_from_explored(defrag)
+        invalidate_in_explored(defrag)
         return False
 
-    # TODO: look for textual similarity; if similar, explored.json keeps it but we will return False
+    # look for textual similarity
+    # look at tokens[10-20]; if their checksum is same, return false
+    checksum = 0
+    for i in range(10, 21):
+        word = tokens[i]
+        for c in word:
+            checksum += ord(c)
+    try:
+        with open("sumhash.json", "r") as setfile:
+            sums = json.load(setfile)
+        if checksum in sums:
+            invalidate_in_explored(defrag)
+            return False
+        sums[checksum] = 0
+        with open("sumhash.json", "w") as setfile:
+            json.dump(subs, setfile)
+    except FileNotFoundError: # triggered when sumhash.json is empty, so should only run the first time running
+        sums = {checksum:0}
+        with open("sumhash.json", "w") as setfile:
+            json.dump(subs, setfile)
 
     # Seems valid: add to subdomains
     subdom = parsed.netloc
@@ -190,7 +209,7 @@ def is_valid_current(url, resp):
         subs[subdom] = subs[subdom] + 1 if (subdom in subs) else 1
         with open("subdomains.json", "w") as setfile:
             json.dump(subs, setfile)
-    except FileNotFoundError: # triggered when explored.json is empty, so should only run the first time running
+    except FileNotFoundError: # triggered when subdomains.json is empty, so should only run the first time running
         subs = {"www.ics.uci.edu":0,"www.cs.uci.edu":0,"www.informatics.uci.edu":0,"www.stat.uci.edu":0}
         subs[subdom] = subs[subdom] + 1 if (subdom in subs) else 1
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
@@ -206,7 +225,7 @@ def count_words(defrag, numwords, token_list):
     and word frequencies to wordtotals.json.
     
     '''
-    # updating explored.json values
+    # updating explored.json values with numwords
     try:
         # explored.json might not exist, but defrag will be in it if it does
         with open("explored.json", "r") as setfile:
@@ -220,7 +239,7 @@ def count_words(defrag, numwords, token_list):
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(urls, setfile)
 
-    # updating wordtotals.json
+    # updating wordtotals.json with word frequencies
     try:
         # wordtotals.json might not exist, but defrag will be in it if it does
         with open("wordtotals.json", "r") as setfile:
@@ -240,27 +259,28 @@ def update_token_map(token_map, token_list):
     tokens from the list into the dict.
     '''
     # Code from tracy's Assignment 1 Part A
-    token_list = map(lower(), token_list)
+    token_list = [token.lower() for token in token_list]
     for token in token_list:
-        if token. in token_map:
+        if token in token_map:
             token_map[token] += 1
         else:
             token_map[token] = 1
 
-def remove_from_explored(defrag):
+def invalidate_in_explored(defrag):
     '''
-    Remove the given defragmented URL from file explored.json. If no file exists,
-    create one with the seed URLs and remove the given URL from it.
+    Set the given defragmented URL value in file explored.json to -1.
+    If no file exists, create one with the seed URLs and set that
+    to -1. -1 means invalid and will not be counted at the very end
+    of scraped unique URLs.
     '''
     try:
         with open("explored.json", "r") as setfile:
             urls = json.load(setfile)
-        del urls[defrag]
+        urls[defrag] = -1
         with open("explored.json", "w") as setfile:
             json.dump(urls, setfile)
     except FileNotFoundError: # will only trigger the first time a seed url is processed and removed
         urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
-        del urls[defrag]
+        urls[defrag] = -1
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(urls, setfile)
-    print(f"Removed [defrag]") #DEBUG
