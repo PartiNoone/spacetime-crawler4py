@@ -6,6 +6,7 @@ from queue import Queue, Empty
 
 from utils import get_logger, get_urlhash, normalize
 from scraper import is_valid
+from scraper import can_be_frontier
 
 class Frontier(object):
     def __init__(self, config, restart):
@@ -40,7 +41,7 @@ class Frontier(object):
         total_count = len(self.save)
         tbd_count = 0
         for url, completed in self.save.values():
-            if not completed and is_valid(url):
+            if not completed and can_be_frontier(url):
                 self.to_be_downloaded.append(url)
                 tbd_count += 1
         self.logger.info(

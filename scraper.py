@@ -44,64 +44,11 @@ def is_valid(url):
     try:
         parsed = urlparse(url)
 
+        if is_banned(url):
+            return False
+        
         defrag = defragment(parsed)
         defrag2 = defragment2(parsed, defrag)
-
-        # url parses into scheme://netloc/path;params?query#fragment
-        if parsed.scheme not in set(["http", "https"]):
-            return False
-
-        # add more specifications here? re.match(substring, string)
-        if not re.match(
-            # filter out non uci/ics sites
-            # .* means any combination and number of characters
-            # no $ sign because we want to allow a path
-            r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
-            + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
-            , (parsed.netloc + parsed.path).lower()):
-            return False
-
-        if re.match(
-            # filter out unwanted pages, based on netloc+path
-            r"(isg.ics.uci.edu/events/tag/talk/day"                # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
-            + r"|isg.ics.uci.edu/events/20"                        # individual calandar days
-            + r"isg.ics.uci.edu/events/month/20"                   # individual calendar months
-            + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
-            + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
-            + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
-            + r"|sli.ics.uci.edu"                                  # pages don't work
-            + r")"
-            , (parsed.netloc + parsed.path).lower()):
-            return False
-
-        if re.match(
-            # filter out more unwanted pages, based on query
-            r".*(ical=1"              # downloads an outlook file and serves blank page
-            + r").*"
-            , (parsed.query).lower()):
-            return False
-
-        if re.match(
-            # .* means any combination and number of characters
-            # \. means a dot
-            # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", (parsed.path).lower()): # TODO: SHOULD I CHANGE PARSED.PATH TO THE WHOLE URL ENDING?
-            return False
-
         # Add the url to explored dict if not in it already. If it is, then return False.
         try:
             with open("explored.json", "r") as setfile:
@@ -124,36 +71,98 @@ def is_valid(url):
         print ("TypeError for ", parsed)
         raise
 
+def is_banned(parsed):
+    '''
+    Helper for is_valid and can_be_frontier.
+    Takes in a urlparsed URL and runs it through some filters.
+    Returns True if it got caught by the filters.
+    '''
+    # url parses into scheme://netloc/path;params?query#fragment
+        if parsed.scheme not in set(["http", "https"]):
+            return True
+
+        # add more specifications here? re.match(substring, string)
+        if not re.match(
+            # filter out non uci/ics sites
+            # .* means any combination and number of characters
+            # no $ sign because we want to allow a path
+            r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
+            + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
+            , (parsed.netloc + parsed.path).lower()):
+            return True
+
+        if re.match(
+            # filter out unwanted pages, based on netloc+path
+            r"(isg.ics.uci.edu/events/tag/talk/day"                # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
+            + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
+            + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
+            + r"|isg.ics.uci.edu/events/20"                        # individual calandar days
+            + r"|isg.ics.uci.edu/events/month/20"                  # individual calendar months
+            + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
+            + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
+            + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
+            + r"|sli.ics.uci.edu"                                  # pages don't work
+            + r")"
+            , (parsed.netloc + parsed.path).lower()):
+            return True
+
+        if re.match(
+            # filter out more unwanted pages, based on query
+            r"(ical=1"              # downloads an outlook file and serves blank page
+            + r"|date="             # don't want individual dates
+            + r")"
+            , (parsed.query).lower()):
+            return True
+
+        if re.match(
+            # .* means any combination and number of characters
+            # \. means a dot
+            # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
+            r".*\.(css|js|bmp|gif|jpe?g|ico"
+            + r"|png|tiff?|mid|mp2|mp3|mp4"
+            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+            + r"|epub|dll|cnf|tgz|sha1"
+            + r"|thmx|mso|arff|rtf|jar|csv"
+            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", (parsed.path).lower()):
+            return True
+        return False
+
 def defragment(parsed):
     '''
-    Takes in a urlparsed url and returns the defragmented URL string
+    Takes in a urlparsed url and returns the defragmented URL string.
+    Removes the trailing slash (/) because sometimes two URLs that are
+    the same except for a slash get double counted
     '''
     if type(parsed.scheme) is str:
         defrag = (parsed.scheme + '://' + parsed.netloc + parsed.path if (parsed.query == '')
                     else parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + parsed.query)
-        # SOMETIMES URLS ARE DOUBLE COUNTED BECAUSE THEY END IN A /, remove trailing /
+        # Remove trailing /
         defrag = (defrag[0: -1] if (defrag[-1] == '/') else defrag)
-        # SOMETIMES HTTP AND HTTPS PAGES ARE COUNTED AS THE SAME; MAKE A DEFRAG2 WHICH USES THE OTHER SCHEME
-        defrag2 = 'http' + defrag[5:] if (parsed.scheme == 'https') else 'https' + defrag[4:]
     else: # for when the url is in bytes instead of string
         defrag = (parsed.scheme + b'://' + parsed.netloc + parsed.path if (parsed.query == b'')
                   else parsed.scheme + b'://' + parsed.netloc + parsed.path + b'?' + parsed.query)
         # Remove trailing /
         defrag = (defrag[0, -1] if (defrag[-1] == '/') else defrag)
-        # Defrag2 = other scheme defrag
-        defrag2 = b'http' + defrag[5:] if (parsed.scheme == 'https') else b'https' + defrag[4:]
     return defrag
 
 def defragment2(parsed, defrag):
     '''
     Takes in a urlparsed url and defragmented url and returns
-    the defragmented URL string using the other scheme
+    the defragmented URL string using the other scheme.
+    Sometimes two urls that are the same except for http vs. 
+    https get double counted, so we'll try to minimize that
+    with defrag2.
     '''
     if type(parsed.scheme) is str:
-        # prevent http... and https... urls from being double counted
         defrag2 = 'http' + defrag[5:] if (parsed.scheme == 'https') else 'https' + defrag[4:]
     else: # for when the url is in bytes instead of string
-        # Defrag2 = other scheme defrag
         defrag2 = b'http' + defrag[5:] if (parsed.scheme == 'https') else b'https' + defrag[4:]
     return defrag2
 
@@ -290,3 +299,33 @@ def invalidate_in_explored(defrag):
         urls[defrag] = -1
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(urls, setfile)
+
+def can_be_frontier(url):
+    '''
+    For use in Frontier.py. Meant to be used to see if a URL (which will be present in explored.json)
+    is allowed to be in the frontier. Return True if it can stay in the frontier,
+    return False if we don't want it.
+    Generally, this will run when explored.json has things in it.
+    '''
+    try:
+        parsed = urlparse(url)
+        if (is_banned(parsed)):
+            return False
+        defrag = defragment(parsed)
+        defrag2 = defragment2(parsed, defrag)
+        try:
+            with open("explored.json", "r") as setfile:
+                urls = json.load(setfile)
+            # If a URL was added to explored.py (discovered) but not processed, then
+            # its dict value should still be 0. Therefore val == 0 means it was on the
+            # frontier
+            if defrag in urls:
+                return (False if urls[defrag] != 0 else True)
+            if defrag2 in urls:
+                return (False if urls[defrag2] != 0 else True)
+        except FileNotFoundError: # generally explored.json will always exist so this shouldn't activate but let's be safe
+            return True
+        return True
+    except TypeError:
+        print ("TypeError for ", parsed)
+        raise
