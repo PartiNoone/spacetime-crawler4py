@@ -236,7 +236,8 @@ def count_words(defrag, numwords, token_list):
         with open("explored.json", "w") as setfile:
             json.dump(urls, setfile)
     except FileNotFoundError: # will only trigger the first time a seed url is processed and nothing is removed
-        urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
+        # urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
+        urls = {}
         urls[defrag] = numwords
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(urls, setfile)
@@ -282,7 +283,8 @@ def invalidate_in_explored(defrag):
         with open("explored.json", "w") as setfile:
             json.dump(urls, setfile)
     except FileNotFoundError: # will only trigger the first time a seed url is processed and removed
-        urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
+        # urls = {"https://www.ics.uci.edu":0,"https://www.cs.uci.edu":0,"https://www.informatics.uci.edu":0,"https://www.stat.uci.edu":0}
+        urls = {}
         urls[defrag] = -1
         with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(urls, setfile)
