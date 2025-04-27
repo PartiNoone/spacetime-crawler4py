@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 from lxml import etree
 from bs4 import BeautifulSoup
 import json
-from tokenize import tokenize_string
+from tokenizewords import tokenize_string
 import wordcount
 
 def scraper(url, resp):
@@ -33,10 +33,7 @@ def extract_next_links(url:str, resp):
     #         resp.raw_response.content: the content of the page
     soup = BeautifulSoup(resp.raw_response.content,'lxml')
     links = [link.get('href') for link in soup.find_all('a')]
-    # Return a list with the hyperlinks (as strings) scrapped from resp.raw_response.content
-    # TODO: MAYBE CALL A FUNCTION THAT TAKES SOUP AND URL, COUNTS ALL THE WORDS, AND THEN SAVES THAT TO A FILE (for 50 most common words in space and longest page)
-        return links
-    return list()
+    return links
 
 def is_valid(url):
     '''
@@ -170,6 +167,7 @@ def is_valid_current(url, resp):
     # Status != 200
     if (resp.status != 200):
         invalidate_in_explored(defrag)
+        print(f"Did not scrape {url} because status = {resp.status}")# DEBUG
         return False
     soup = BeautifulSoup(resp.raw_response.content,'lxml')
     tokens = tokenize_string(soup.get_text(" ", strip=True)) # long list of words
@@ -178,10 +176,11 @@ def is_valid_current(url, resp):
     numwords = len(tokens)
     if numwords < 100:
         invalidate_in_explored(defrag)
+        print(f"Did not scrape {url} because number of words {numwords} < 100")# DEBUG
         return False
 
     # look for textual similarity
-    # look at tokens[10-20]; if their checksum is same, return false
+    # look at tokens[10-21]; if their checksum is same, return false
     checksum = 0
     for i in range(10, 21):
         word = tokens[i]
@@ -192,14 +191,15 @@ def is_valid_current(url, resp):
             sums = json.load(setfile)
         if checksum in sums:
             invalidate_in_explored(defrag)
+            print(f"Did not scrape {url} because checksum {checksum} already exists")# DEBUG
             return False
         sums[checksum] = 0
         with open("sumhash.json", "w") as setfile:
-            json.dump(subs, setfile)
+            json.dump(sums, setfile)
     except FileNotFoundError: # triggered when sumhash.json is empty, so should only run the first time running
         sums = {checksum:0}
         with open("sumhash.json", "w") as setfile:
-            json.dump(subs, setfile)
+            json.dump(sums, setfile)
 
     # Seems valid: add to subdomains
     subdom = parsed.netloc
@@ -212,11 +212,12 @@ def is_valid_current(url, resp):
     except FileNotFoundError: # triggered when subdomains.json is empty, so should only run the first time running
         subs = {"www.ics.uci.edu":0,"www.cs.uci.edu":0,"www.informatics.uci.edu":0,"www.stat.uci.edu":0}
         subs[subdom] = subs[subdom] + 1 if (subdom in subs) else 1
-        with open("explored.json", "w") as setfile: # should only run the first time that a new URL is found
+        with open("subdomains.json", "w") as setfile: # should only run the first time that a new URL is found
             json.dump(subs, setfile)
 
     # Count the number of words in the URL for explored.json and the word frequencies for wordtotals.json
     count_words(defrag, numwords, tokens)
+    return True
 
 def count_words(defrag, numwords, token_list):
     '''

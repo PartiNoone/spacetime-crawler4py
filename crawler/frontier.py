@@ -13,12 +13,12 @@ class Frontier(object):
         self.config = config
         self.to_be_downloaded = list()
         
-        if not os.path.exists(self.config.save_file) and not restart:
+        if not os.path.exists(self.config.save_file + '.bak') and not restart:
             # Save file does not exist, but request to load save.
             self.logger.info(
                 f"Did not find save file {self.config.save_file}, "
                 f"starting from seed.")
-        elif os.path.exists(self.config.save_file) and restart:
+        elif os.path.exists(self.config.save_file + '.bak') and restart:
             # Save file does exists, but request to start from seed.
             self.logger.info(
                 f"Found save file {self.config.save_file}, deleting it.")
