@@ -115,11 +115,13 @@ def is_banned(parsed):
         # filter out more unwanted pages, based on query
         r"(ical=1"              # downloads an outlook file and serves blank page
         + r"|tribe-bar-date="             # don't want individual dates
+        + r"|share="             # please don't take the bot to twitter or facebook
         + r")"
         , (parsed.query).lower()):
         return True
 
     if re.match(
+        # filter out unwanted page formats
         # .* means any combination and number of characters
         # \. means a dot
         # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
@@ -275,6 +277,8 @@ def update_token_map(token_map, token_list):
     # Code from tracy's Assignment 1 Part A
     token_list = [token.lower() for token in token_list]
     for token in token_list:
+        if token.isnumeric():
+            continue # the report asks for 50 most common WORDS! AND A NUMBER ISN'T A WORD
         if token in token_map:
             token_map[token] += 1
         else:
