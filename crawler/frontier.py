@@ -41,7 +41,7 @@ class Frontier(object):
         total_count = len(self.save)
         tbd_count = 0
         for url, completed in self.save.values():
-            if not completed and can_be_frontier(url):
+            if not completed and can_be_frontier(url): # Here's where I replaced the call to is_valid() with a call to can_be_frontier()
                 self.to_be_downloaded.append(url)
                 tbd_count += 1
         self.logger.info(

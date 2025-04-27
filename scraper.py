@@ -44,7 +44,7 @@ def is_valid(url):
     try:
         parsed = urlparse(url)
 
-        if is_banned(url):
+        if is_banned(parsed):
             return False
         
         defrag = defragment(parsed)
@@ -78,61 +78,61 @@ def is_banned(parsed):
     Returns True if it got caught by the filters.
     '''
     # url parses into scheme://netloc/path;params?query#fragment
-        if parsed.scheme not in set(["http", "https"]):
-            return True
+    if parsed.scheme not in set(["http", "https"]):
+        return True
 
-        # add more specifications here? re.match(substring, string)
-        if not re.match(
-            # filter out non uci/ics sites
-            # .* means any combination and number of characters
-            # no $ sign because we want to allow a path
-            r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
-            + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
-            , (parsed.netloc + parsed.path).lower()):
-            return True
+    # add more specifications here? re.match(substring, string)
+    if not re.match(
+        # filter out non uci/ics sites
+        # .* means any combination and number of characters
+        # no $ sign because we want to allow a path
+        r".*(ics.uci.edu|cs.uci.edu|informatics.uci.edu"
+        + r"|stat.uci.edu|today.uci.edu/department/information_computer_sciences)"
+        , (parsed.netloc + parsed.path).lower()):
+        return True
 
-        if re.match(
-            # filter out unwanted pages, based on netloc+path
-            r"(isg.ics.uci.edu/events/tag/talk/day"                # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
-            + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
-            + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
-            + r"|isg.ics.uci.edu/events/20"                        # individual calandar days
-            + r"|isg.ics.uci.edu/events/month/20"                  # individual calendar months
-            + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
-            + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
-            + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
-            + r"|sli.ics.uci.edu"                                  # pages don't work
-            + r")"
-            , (parsed.netloc + parsed.path).lower()):
-            return True
+    if re.match(
+        # filter out unwanted pages, based on netloc+path
+        r"(isg.ics.uci.edu/events/tag/talk/day"                # individual calendar days
+        + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
+        + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
+        + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
+        + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
+        + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
+        + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
+        + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
+        + r"|isg.ics.uci.edu/events/20"                        # individual calandar days
+        + r"|isg.ics.uci.edu/events/month/20"                  # individual calendar months
+        + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
+        + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
+        + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
+        + r"|sli.ics.uci.edu"                                  # pages don't work
+        + r")"
+        , (parsed.netloc + parsed.path).lower()):
+        return True
 
-        if re.match(
-            # filter out more unwanted pages, based on query
-            r"(ical=1"              # downloads an outlook file and serves blank page
-            + r"|date="             # don't want individual dates
-            + r")"
-            , (parsed.query).lower()):
-            return True
+    if re.match(
+        # filter out more unwanted pages, based on query
+        r"(ical=1"              # downloads an outlook file and serves blank page
+        + r"|tribe-bar-date="             # don't want individual dates
+        + r")"
+        , (parsed.query).lower()):
+        return True
 
-        if re.match(
-            # .* means any combination and number of characters
-            # \. means a dot
-            # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
-            r".*\.(css|js|bmp|gif|jpe?g|ico"
-            + r"|png|tiff?|mid|mp2|mp3|mp4"
-            + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
-            + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
-            + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
-            + r"|epub|dll|cnf|tgz|sha1"
-            + r"|thmx|mso|arff|rtf|jar|csv"
-            + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", (parsed.path).lower()):
-            return True
-        return False
+    if re.match(
+        # .* means any combination and number of characters
+        # \. means a dot
+        # $ means end of string; so "jpeg" matches "me.jpeg" but not "me.jpeg2"
+        r".*\.(css|js|bmp|gif|jpe?g|ico"
+        + r"|png|tiff?|mid|mp2|mp3|mp4"
+        + r"|wav|avi|mov|mpeg|ram|m4v|mkv|ogg|ogv|pdf"
+        + r"|ps|eps|tex|ppt|pptx|doc|docx|xls|xlsx|names"
+        + r"|data|dat|exe|bz2|tar|msi|bin|7z|psd|dmg|iso"
+        + r"|epub|dll|cnf|tgz|sha1"
+        + r"|thmx|mso|arff|rtf|jar|csv"
+        + r"|rm|smil|wmv|swf|wma|zip|rar|gz)$", (parsed.path).lower()):
+        return True
+    return False
 
 def defragment(parsed):
     '''
