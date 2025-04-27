@@ -93,31 +93,34 @@ def is_banned(parsed):
 
     if re.match(
         # filter out unwanted pages, based on netloc+path
-        r".*(isg.ics.uci.edu/events/tag/talk/day"                # individual calendar days
-        + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
-        + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
-        + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
-        + r"|isg.ics.uci.edu/events/tag/talk/month"            # individual calendar months
-        + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
-        + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
-        + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
-        + r"|isg.ics.uci.edu/events/20"                        # individual calandar days
-        + r"|isg.ics.uci.edu/events/month/20"                  # individual calendar months
-        + r"|events/category/wics-meeting-dbh-5011/20"         # individual calendar months
-        + r"|events/category/wics-meeting-dbh-5011/day"        # individual calendar days
-        + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
-        + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
-        + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
-        + r"|sli.ics.uci.edu"                                  # pages don't work
+        r".*(ics\.uci\.edu/events/20[0-9][0-9]"                   # individual calendar days
+        + r"|ics\.uci\.edu/events/week/20[0-9][0-9]"              # individual calendar days
+        + r"|events/category/.*/20[0-9][0-9]"                     # individual calendar months
+        + r"|events/category/.*/day"                              # individual calendar days
+        + r"|isg\.ics\.uci\.edu/events/tag/talk/day"              # individual calendar days
+        + r"|isg\.ics\.uci\.edu/events/tag/talks/day"             # individual calendar days
+        + r"|isg\.ics\.uci\.edu/events/tag/talk/20[0-9][0-9]"     # individual calendar months
+        + r"|isg\.ics\.uci\.edu/events/tag/talks/20[0-9][0-9]"    # individual calendar days
+        + r"|isg\.ics\.uci\.edu/events/tag/talk/month"            # individual calendar months
+        + r"|isg\.ics\.uci\.edu/events/tag/talks/month"           # individual calendar months
+        + r"|isg\.ics\.uci\.edu/events/tag/talk/list"             # individual calendar days
+        + r"|isg\.ics\.uci\.edu/events/tag/talks/list"            # individual calendar days
+        + r"|ics\.uci\.edu/events/20[0-9][0-9]"                   # individual calandar days
+        + r"|ics\.uci\.edu/events/month/20[0-9][0-9]"             # individual calendar months
+        + r"|wics\.ics\.uci\.edu/events/20[0-9][0-9]"             # individual calendar days
+        + r"|wics\.ics\.uci\.edu/events/month/20[0-9][0-9]"       # individual calendar months
+        + r"|intranet\.ics\.uci\.edu/doku\.php$"                  # requires login
+        + r"|intranet\.ics\.uci\.edu/doku\.php/personnel:start"   # requires login
+        + r"|isg\.ics\.uci\.edu/wp-login\.php"                    # requires login
+        + r"|sli\.ics\.uci\.edu"                                  # pages don't work
         + r")"
         , (parsed.netloc + parsed.path).lower()):
         return True
 
     if re.match(
         # filter out more unwanted pages, based on query
-        r"(ical=1"                        # downloads an outlook file and serves blank page
-        + r"|outlook-ical=1"             # ditto
-        + r"|tribe-bar-date="             # don't want individual dates
+        r".*(ical=1"                      # downloads an outlook file and serves blank page
+        + r"|date="                       # don't want individual dates
         + r"|share="                      # please don't take the bot to twitter or facebook
         + r")"
         , (parsed.query).lower()):
