@@ -114,9 +114,10 @@ def is_banned(parsed):
 
     if re.match(
         # filter out more unwanted pages, based on query
-        r"(ical=1"              # downloads an outlook file and serves blank page
+        r"(ical=1"                        # downloads an outlook file and serves blank page
+        + r"|outlook-ical=1"             # ditto
         + r"|tribe-bar-date="             # don't want individual dates
-        + r"|share="             # please don't take the bot to twitter or facebook
+        + r"|share="                      # please don't take the bot to twitter or facebook
         + r")"
         , (parsed.query).lower()):
         return True
