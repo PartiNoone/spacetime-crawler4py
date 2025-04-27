@@ -159,6 +159,7 @@ def defragment2(parsed, defrag):
 def is_valid_current(url, resp):
     '''
     Takes in current url and response, returns True if we want to scrape it for links.
+    
     Also processes current and adds it to subdomains, and counts words for explored.json
     and wordtotals.py.
     '''
@@ -181,9 +182,9 @@ def is_valid_current(url, resp):
         return (False, msg)
 
     # look for textual similarity
-    # look at tokens[10-21]; if their checksum is same, return false
+    # look at tokens[10-31]; if their checksum is same, return false
     checksum = 0
-    for i in range(10, 21):
+    for i in range(10, 31):
         word = tokens[i]
         for c in word:
             checksum += ord(c)
@@ -218,7 +219,7 @@ def is_valid_current(url, resp):
 
     # Count the number of words in the URL for explored.json and the word frequencies for wordtotals.json
     count_words(defrag, numwords, tokens)
-    return True
+    return (True, 'pass')
 
 def count_words(defrag, numwords, token_list):
     '''
