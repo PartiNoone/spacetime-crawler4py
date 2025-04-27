@@ -63,7 +63,7 @@ def is_valid(url):
 
         if re.match(
             # filter out unwanted pages, based on netloc+path
-            r".*(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
+            r"(isg.ics.uci.edu/events/tag/talk/day"              # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talks/day"             # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talk/20"               # individual calendar months
             + r"|isg.ics.uci.edu/events/tag/talks/20"              # individual calendar days
@@ -71,11 +71,12 @@ def is_valid(url):
             + r"|isg.ics.uci.edu/events/tag/talks/month"           # individual calendar months
             + r"|isg.ics.uci.edu/events/tag/talk/list"             # individual calendar days
             + r"|isg.ics.uci.edu/events/tag/talks/list"            # individual calendar days
+            + r"|isg.ics.uci.edu/events/20"
             + r"|intranet.ics.uci.edu/doku.php$"                   # requires login
             + r"|intranet.ics.uci.edu/doku.php/personnel:start"    # requires login
             + r"|isg.ics.uci.edu/wp-login.php"                     # requires login
             + r"|sli.ics.uci.edu"                                  # pages don't work
-            + r").*"
+            + r")"
             , (parsed.netloc + parsed.path).lower()):
             return False
 
@@ -167,8 +168,8 @@ def is_valid_current(url, resp):
     # Status != 200
     if (resp.status != 200):
         invalidate_in_explored(defrag)
-        print(f"Did not scrape {url} because status = {resp.status}")# DEBUG
-        return False
+        msg = f"Did not scrape {url} because status = {resp.status}"
+        return (False, msg)
     soup = BeautifulSoup(resp.raw_response.content,'lxml')
     tokens = tokenize_string(soup.get_text(" ", strip=True)) # long list of words
     
@@ -176,8 +177,8 @@ def is_valid_current(url, resp):
     numwords = len(tokens)
     if numwords < 100:
         invalidate_in_explored(defrag)
-        print(f"Did not scrape {url} because number of words {numwords} < 100")# DEBUG
-        return False
+        msg = f"Did not scrape {url} because number of words {numwords} < 100"
+        return (False, msg)
 
     # look for textual similarity
     # look at tokens[10-21]; if their checksum is same, return false
@@ -191,8 +192,8 @@ def is_valid_current(url, resp):
             sums = json.load(setfile)
         if checksum in sums:
             invalidate_in_explored(defrag)
-            print(f"Did not scrape {url} because checksum {checksum} already exists")# DEBUG
-            return False
+            msg = f"Did not scrape {url} because checksum {checksum} already exists"
+            return (False, msg)
         sums[checksum] = 0
         with open("sumhash.json", "w") as setfile:
             json.dump(sums, setfile)

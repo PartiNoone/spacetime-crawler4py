@@ -26,12 +26,15 @@ class Worker(Thread):
                 break
             resp = download(tbd_url, self.config, self.logger)
             will_scrape = scraper.is_valid_current(tbd_url, resp)
-            if will_scrape:
+            if will_scrape[0]:
                 self.logger.info(
                     f"Downloaded {tbd_url}, status <{resp.status}>, "
                     f"using cache {self.config.cache_server}.")
                 scraped_urls = scraper.scraper(tbd_url, resp)
                 for scraped_url in scraped_urls:
                     self.frontier.add_url(scraped_url)
+            # Custom log message
+            else:
+                self.logger.info(will_scrape[1])
             self.frontier.mark_url_complete(tbd_url)
             time.sleep(self.config.time_delay)
