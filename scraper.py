@@ -70,6 +70,8 @@ def is_valid(url):
     except TypeError:
         print ("TypeError for ", parsed)
         raise
+    except ValueError: # when urlparse(url) gives error msg'YOUR_IP' does not appear to be an IPv4 or IPv6 address
+        return False
 
 def is_banned(parsed):
     '''
@@ -93,7 +95,8 @@ def is_banned(parsed):
 
     if re.match(
         # filter out unwanted pages, based on netloc+path
-        r".*(ics\.uci\.edu/events/20[0-9][0-9]"                   # individual calendar days
+        r".*([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"          # any specific date
+        + r"|ics\.uci\.edu/events/20[0-9][0-9]"                   # individual calendar days
         + r"|ics\.uci\.edu/events/week/20[0-9][0-9]"              # individual calendar days
         + r"|events/category/.*/20[0-9][0-9]"                     # individual calendar months
         + r"|events/category/.*/day"                              # individual calendar days
@@ -111,7 +114,7 @@ def is_banned(parsed):
         + r"|wics\.ics\.uci\.edu/events/month/20[0-9][0-9]"       # individual calendar months
         + r"|intranet\.ics\.uci\.edu/doku\.php$"                  # requires login
         + r"|intranet\.ics\.uci\.edu/doku\.php/personnel:start"   # requires login
-        + r"|isg\.ics\.uci\.edu/wp-login\.php"                    # requires login
+        + r"|wp-login\.php"                                       # requires login
         + r"|sli\.ics\.uci\.edu"                                  # pages don't work
         + r")"
         , (parsed.netloc + parsed.path).lower()):
@@ -121,6 +124,7 @@ def is_banned(parsed):
         # filter out more unwanted pages, based on query
         r".*(ical=1"                      # downloads an outlook file and serves blank page
         + r"|date="                       # don't want individual dates
+        + r"|[1-2][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]"
         + r"|share="                      # please don't take the bot to twitter or facebook
         + r")"
         , (parsed.query).lower()):
@@ -181,7 +185,11 @@ def is_valid_current(url, resp):
     Also processes current and adds it to subdomains, and counts words for explored.json
     and wordtotals.py.
     '''
-    parsed = urlparse(url)
+    try:
+        parsed = urlparse(url)
+    except ValueError: # when urlparse(url) gives error msg'YOUR_IP' does not appear to be an IPv4 or IPv6 address
+        return False
+
     defrag = defragment(parsed) # Won't need defrag2, since only defragmented1 is ever added to explored.json
 
     # Status != 200
